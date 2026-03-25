@@ -1,0 +1,56 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: macos-latest
+            platform: macos
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build macOS
+        if: matrix.platform == 'macos'
+        run: |
+          make build-macos
+          mv kbd kbd_macos
+
+      - name: Build Linux targets
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev mingw-w64
+          make build-hyprland && mv kbd kbd_hyprland
+          make build-gnome && mv kbd kbd_gnome
+          make build-kde && mv kbd kbd_kde
+          make build-sway && mv kbd kbd_sway
+          make build-x11 && mv kbd kbd_x11
+          make build-win
+
+      - name: Zip distribution files (Linux/Win)
+        if: matrix.platform == 'linux'
+        run: |
+          zip -r kbd-linux-win.zip kbd_hyprland kbd_gnome kbd_kde kbd_sway kbd_x11 kbd.exe install_linux.sh install_win.ps1 README.md LICENSE
+          
+      - name: Zip distribution files (macOS)
+        if: matrix.platform == 'macos'
+        run: |
+          zip -r kbd-macos.zip kbd_macos install_mac.sh README.md LICENSE
+
+      - name: Upload Artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.zip
