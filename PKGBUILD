@@ -7,73 +7,134 @@ pkgname=(
   'kbd-daemon-kde-git'
   'kbd-daemon-sway-git'
   'kbd-daemon-x11-git'
+  'kbd-daemon-all-git'
 )
-pkgver=r1.0
+pkgver=r2.aa89c20
 pkgrel=1
 arch=('x86_64' 'aarch64' 'armv7h')
 url="https://github.com/Veitangie/keyboard-daemon"
 license=('GPL3')
-depends=('glibc' 'systemd')
-makedepends=('git' 'make' 'gcc' 'libx11')
+
+install=kbd.install
+
+makedepends=('git' 'make' 'gcc')
+depends_common=('glibc' 'systemd')
+
 source=("git+https://github.com/Veitangie/keyboard-daemon.git")
 md5sums=('SKIP')
 
 pkgver() {
-  cd "$srcdir/kbd"
+  cd "$srcdir/keyboard-daemon"
   printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 build() {
-  cd "$srcdir/kbd"
+  cd "$srcdir/keyboard-daemon"
+
   make build-hyprland && mv kbd kbd_hyprland
-  make build-gnome && mv kbd kbd_gnome
-  make build-kde && mv kbd kbd_kde
-  make build-sway && mv kbd kbd_sway
-  make build-x11 && mv kbd kbd_x11
+  make build-gnome    && mv kbd kbd_gnome
+  make build-kde      && mv kbd kbd_kde
+  make build-sway     && mv kbd kbd_sway
+  make build-x11      && mv kbd kbd_x11
 }
 
 _package_common() {
-  cd "$srcdir/kbd"
-  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/${pkgname}/LICENSE"
+  cd "$srcdir/keyboard-daemon"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
+
+_install_service() {
+  local name="$1"
+  local bin="$2"
+
+  install -Dm644 /dev/stdin \
+    "$pkgdir/usr/lib/systemd/user/kbd-daemon-${name}.service" <<EOF
+[Unit]
+Description=Keyboard Daemon (${name})
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/${bin}
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target
+EOF
 }
 
 package_kbd-daemon-hyprland-git() {
-  pkgdesc="A lightweight daemon to sync OS locale with keyboard layers (Hyprland)"
-  provides=('kbd-daemon')
-  conflicts=('kbd-daemon')
-  install -Dm755 "$srcdir/kbd/kbd_hyprland" "$pkgdir/usr/bin/kbd-daemon"
+  pkgdesc="Keyboard layout/locale sync daemon (Hyprland)"
+  depends=("${depends_common[@]}")
+
+  install -Dm755 "$srcdir/keyboard-daemon/kbd_hyprland" \
+    "$pkgdir/usr/bin/kbd-daemon-hyprland"
+
+  _install_service "hyprland" "kbd-daemon-hyprland"
   _package_common
 }
 
 package_kbd-daemon-gnome-git() {
-  pkgdesc="A lightweight daemon to sync OS locale with keyboard layers (GNOME)"
-  provides=('kbd-daemon')
-  conflicts=('kbd-daemon')
-  install -Dm755 "$srcdir/kbd/kbd_gnome" "$pkgdir/usr/bin/kbd-daemon"
+  pkgdesc="Keyboard layout/locale sync daemon (GNOME)"
+  depends=("${depends_common[@]}")
+
+  install -Dm755 "$srcdir/keyboard-daemon/kbd_gnome" \
+    "$pkgdir/usr/bin/kbd-daemon-gnome"
+
+  _install_service "gnome" "kbd-daemon-gnome"
   _package_common
 }
 
 package_kbd-daemon-kde-git() {
-  pkgdesc="A lightweight daemon to sync OS locale with keyboard layers (KDE)"
-  provides=('kbd-daemon')
-  conflicts=('kbd-daemon')
-  install -Dm755 "$srcdir/kbd/kbd_kde" "$pkgdir/usr/bin/kbd-daemon"
+  pkgdesc="Keyboard layout/locale sync daemon (KDE)"
+  depends=("${depends_common[@]}")
+
+  install -Dm755 "$srcdir/keyboard-daemon/kbd_kde" \
+    "$pkgdir/usr/bin/kbd-daemon-kde"
+
+  _install_service "kde" "kbd-daemon-kde"
   _package_common
 }
 
 package_kbd-daemon-sway-git() {
-  pkgdesc="A lightweight daemon to sync OS locale with keyboard layers (Sway)"
-  provides=('kbd-daemon')
-  conflicts=('kbd-daemon')
-  install -Dm755 "$srcdir/kbd/kbd_sway" "$pkgdir/usr/bin/kbd-daemon"
+  pkgdesc="Keyboard layout/locale sync daemon (Sway)"
+  depends=("${depends_common[@]}")
+
+  install -Dm755 "$srcdir/keyboard-daemon/kbd_sway" \
+    "$pkgdir/usr/bin/kbd-daemon-sway"
+
+  _install_service "sway" "kbd-daemon-sway"
   _package_common
 }
 
 package_kbd-daemon-x11-git() {
-  pkgdesc="A lightweight daemon to sync OS locale with keyboard layers (X11)"
-  depends+=('glibc' 'systemd' 'libx11')
-  provides=('kbd-daemon')
-  conflicts=('kbd-daemon')
-  install -Dm755 "$srcdir/kbd/kbd_x11" "$pkgdir/usr/bin/kbd-daemon"
+  pkgdesc="Keyboard layout/locale sync daemon (X11)"
+  depends=("${depends_common[@]}" 'libx11')
+
+  install -Dm755 "$srcdir/keyboard-daemon/kbd_x11" \
+    "$pkgdir/usr/bin/kbd-daemon-x11"
+
+  _install_service "x11" "kbd-daemon-x11"
+  _package_common
+}
+
+package_kbd-daemon-all-git() {
+  pkgdesc="Keyboard layout/locale sync daemon (all backends)"
+  depends=("${depends_common[@]}" 'libx11')
+
+  cd "$srcdir/keyboard-daemon"
+
+  install -Dm755 kbd_hyprland "$pkgdir/usr/bin/kbd-daemon-hyprland"
+  install -Dm755 kbd_gnome    "$pkgdir/usr/bin/kbd-daemon-gnome"
+  install -Dm755 kbd_kde      "$pkgdir/usr/bin/kbd-daemon-kde"
+  install -Dm755 kbd_sway     "$pkgdir/usr/bin/kbd-daemon-sway"
+  install -Dm755 kbd_x11      "$pkgdir/usr/bin/kbd-daemon-x11"
+
+  _install_service "hyprland" "kbd-daemon-hyprland"
+  _install_service "gnome"    "kbd-daemon-gnome"
+  _install_service "kde"      "kbd-daemon-kde"
+  _install_service "sway"     "kbd-daemon-sway"
+  _install_service "x11"      "kbd-daemon-x11"
+
   _package_common
 }

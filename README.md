@@ -29,7 +29,16 @@ You can either download a pre-compiled release for your OS or build from source.
 ### Option 2: Build from Source
 If you are adapting the daemon for your own needs, you can easily compile and install it using `make`.
 
-> **Arch Linux Note:** A standard `PKGBUILD` is included! You can simply clone the repo and run `makepkg -si` to install the daemon natively via `pacman`.
+> **Arch Linux Note:** A standard `PKGBUILD` is included.
+> 
+> ```bash
+> git clone https://github.com/Veitangie/keyboard-daemon.git
+> cd keyboard-daemon
+> makepkg -s
+> sudo pacman -U kbd-daemon-<platform>-git-*.pkg.tar.zst
+> ```
+>
+> Replace `<platform>` with one of: `hyprland`, `gnome`, `kde`, `sway`, `x11`. Don't forget to enable the service with `systemctl --user enable --now kbd-daemon-<platform>`
 
 1. Clone the repository.
 2. Run the make target for your specific display server or OS:
