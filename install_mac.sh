@@ -37,9 +37,17 @@ fi
 mkdir -p ~/Library/LaunchAgents
 mkdir -p ~/.local/bin
 
-echo "Clearing Apple quarantine flags..."
-xattr -c ./keyboard-daemon 2>/dev/null
+echo "Stopping the currently running service if it exists..."
+launchctl unload -w ~/Library/LaunchAgents/dev.veitangie.kbd_daemon.plist 2>/dev/null
+
+echo "Clearing Apple quarantine flags and setting permissions..."
 cp "$SOURCE_BIN" ~/.local/bin/kbd
+if [ $? -ne 0 ]; then 
+  echo "Failed to copy $SOURCE_BIN to $HOME/.local/bin/kbd, stopping the execution"
+  exit 1
+fi
+xattr -c ~/.local/bin/kbd 2>/dev/null
+chmod +x ~/.local/bin/kbd
 
 cat <<EOF > ~/Library/LaunchAgents/dev.veitangie.kbd_daemon.plist
 <?xml version="1.0" encoding="UTF-8"?>
@@ -48,6 +56,8 @@ cat <<EOF > ~/Library/LaunchAgents/dev.veitangie.kbd_daemon.plist
 <dict>
     <key>Label</key>
     <string>dev.veitangie.kbd_daemon</string>
+    <key>Program</key>
+    <string>$HOME/.local/bin/kbd</string>
     <key>ProgramArguments</key>
     <array>
         <string>$HOME/.local/bin/kbd</string>
@@ -63,6 +73,10 @@ cat <<EOF >> ~/Library/LaunchAgents/dev.veitangie.kbd_daemon.plist
     <true/>
     <key>KeepAlive</key>
     <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/kbd_daemon.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/kbd_daemon.err.log</string>
 </dict>
 </plist>
 EOF
