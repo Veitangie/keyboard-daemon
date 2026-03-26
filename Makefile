@@ -27,7 +27,7 @@ endif
 .PHONY: all clean $(SUPPORTED_TARGETS) $(BUILD_TARGETS) $(DAEMON_ARGS)
 
 CC ?= gcc
-CFLAGS ?= -Wall -Werror -O3 -g
+CFLAGS ?= -Wall -Wextra -O3
 MAC_CC ?= clang
 WIN_CC ?= x86_64-w64-mingw32-gcc
 

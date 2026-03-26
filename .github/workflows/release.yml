@@ -9,48 +9,76 @@ permissions:
 
 jobs:
   build:
-    name: Build & Release
+    name: Build & Package
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
-            platform: linux
+            platform: linux-x86
+          - os: ubuntu-24.04-arm
+            platform: linux-arm64
           - os: macos-latest
             platform: macos
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Build macOS
+      - name: Build & Zip macOS (Universal Binary)
         if: matrix.platform == 'macos'
         run: |
-          make build-macos
+          make build-macos CFLAGS="-O3 -arch x86_64 -arch arm64"
           mv kbd kbd_macos
+          zip -r kbd-macos-universal.zip kbd_macos install_mac.sh README.md LICENSE
 
-      - name: Build Linux targets
-        if: matrix.platform == 'linux'
+      - name: Install Linux/Windows Dependencies
+        if: startsWith(matrix.platform, 'linux')
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev mingw-w64
-          make build-hyprland && mv kbd kbd_hyprland
-          make build-gnome && mv kbd kbd_gnome
-          make build-kde && mv kbd kbd_kde
-          make build-sway && mv kbd kbd_sway
-          make build-x11 && mv kbd kbd_x11
-          make build-win
 
-      - name: Zip distribution files (Linux/Win)
-        if: matrix.platform == 'linux'
+      - name: Build Linux targets
+        if: startsWith(matrix.platform, 'linux')
         run: |
-          zip -r kbd-linux-win.zip kbd_hyprland kbd_gnome kbd_kde kbd_sway kbd_x11 kbd.exe install_linux.sh install_win.ps1 README.md LICENSE
-          
-      - name: Zip distribution files (macOS)
-        if: matrix.platform == 'macos'
-        run: |
-          zip -r kbd-macos.zip kbd_macos install_mac.sh README.md LICENSE
+          make build-hyprland CFLAGS="-O3" && mv kbd kbd_hyprland
+          make build-gnome CFLAGS="-O3" && mv kbd kbd_gnome
+          make build-kde CFLAGS="-O3" && mv kbd kbd_kde
+          make build-sway CFLAGS="-O3" && mv kbd kbd_sway
+          make build-x11 CFLAGS="-O3" && mv kbd kbd_x11
 
-      - name: Upload Artifacts
+      - name: Build Windows target (x86 only)
+        if: matrix.platform == 'linux-x86'
+        run: make build-win CFLAGS="-O3"
+
+      - name: Zip distribution files (Linux x86 & Win)
+        if: matrix.platform == 'linux-x86'
+        run: |
+          zip -r kbd-linux-x86_64-win.zip kbd_hyprland kbd_gnome kbd_kde kbd_sway kbd_x11 kbd.exe install_linux.sh install_win.ps1 README.md LICENSE
+
+      - name: Zip distribution files (Linux ARM64)
+        if: matrix.platform == 'linux-arm64'
+        run: |
+          zip -r kbd-linux-arm64.zip kbd_hyprland kbd_gnome kbd_kde kbd_sway kbd_x11 install_linux.sh README.md LICENSE
+
+      - name: Temporarily save zip for release job
+        uses: actions/upload-artifact@v6
+        with:
+          name: package-${{ matrix.platform }}
+          path: '*.zip'
+          retention-days: 1
+
+  release:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+          pattern: package-*
+          merge-multiple: true
+
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            *.zip
+          files: artifacts/*.zip

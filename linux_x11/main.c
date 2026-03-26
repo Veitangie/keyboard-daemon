@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     }
 
     if ((fds[0].revents & POLLIN) != 0) {
-      while (XPending(display)) {
+      while (XEventsQueued(display, QueuedAfterReading)) {
         XEvent e;
         XNextEvent(display, &e);
         if (e.type == xkbEventBase) {

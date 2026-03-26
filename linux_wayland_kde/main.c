@@ -17,35 +17,16 @@
 #include "../linux_common/hardwarer.h"
 #include "../linux_common/log.h"
 #include <poll.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/inotify.h>
+#include <sys/prctl.h>
 #include <sys/timerfd.h>
 #include <unistd.h>
 
 #define DEVICES_DIR "/dev/"
 #define BUFSIZE 4096
-
-void parseLayoutEvents(char *buf, int *buf_len, Hardwarer *hardwarer,
-                       const char *target) {
-  char *start;
-  while ((start = strstr(buf, target))) {
-    start += strlen(target);
-    char *end = strchr(start, '"');
-    if (end) {
-      *end = '\0';
-      LOG_INFO("Parsed layout string: %s\n", start);
-      sendActions(hardwarer, start);
-
-      int remaining = *buf_len - ((end + 1) - buf);
-      memmove(buf, end + 1, remaining);
-      *buf_len = remaining;
-      buf[*buf_len] = '\0';
-    } else {
-      break;
-    }
-  }
-}
 
 int main(int argc, char *argv[]) {
   int pipefd[2];
@@ -61,6 +42,7 @@ int main(int argc, char *argv[]) {
   } else if (pid == 0) {
     close(pipefd[0]);
     dup2(pipefd[1], STDOUT_FILENO);
+    prctl(PR_SET_PDEATHSIG, SIGKILL);
 
     execlp("stdbuf", "stdbuf", "-oL", "dbus-monitor", "--session",
            "interface='org.kde.KeyboardLayouts'", NULL);

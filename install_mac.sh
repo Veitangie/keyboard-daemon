@@ -37,6 +37,8 @@ fi
 mkdir -p ~/Library/LaunchAgents
 mkdir -p ~/.local/bin
 
+echo "Clearing Apple quarantine flags..."
+xattr -c ./keyboard-daemon 2>/dev/null
 cp "$SOURCE_BIN" ~/.local/bin/kbd
 
 cat <<EOF > ~/Library/LaunchAgents/dev.veitangie.kbd_daemon.plist

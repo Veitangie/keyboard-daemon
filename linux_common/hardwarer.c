@@ -112,24 +112,29 @@ void addDevice(Hardwarer *hardwarer, char *filename) {
   strcpy(heapified, filename);
 
   if (hardwarer->lendevices == hardwarer->capdevices) {
-    Device *new = malloc(sizeof(Device) * (hardwarer->capdevices + 1));
-    memcpy(new, hardwarer->devices, sizeof(Device) * hardwarer->capdevices);
-    free(hardwarer->devices);
+    Device *new = realloc(hardwarer->devices,
+                          sizeof(Device) * (hardwarer->capdevices + 1));
+    if (new == NULL) {
+      LOG_ERR("Failed to reallocate extended devices buffer, the device is not "
+              "added\n");
+      return;
+    }
     hardwarer->devices = new;
     hardwarer->capdevices++;
+    LOG_DEBUG("Resized devices buffer, new cap: %d\n", hardwarer->capdevices);
   }
 
-  LOG_INFO("Added device '%s' to watchlist (len: %d, cap: %d)\n", heapified,
-           hardwarer->lendevices + 1, hardwarer->capdevices);
   hardwarer->devices[hardwarer->lendevices].filename = heapified;
   hardwarer->lendevices++;
   hardwarer->devicesToInit++;
+  LOG_INFO("Added device '%s' to watchlist (len: %d, cap: %d)\n", heapified,
+           hardwarer->lendevices, hardwarer->capdevices);
 
-  LOG_DEBUG("Scheduled timer for device initialization\n");
   struct itimerspec spec = {0};
   spec.it_value.tv_sec = 1;
   spec.it_value.tv_nsec = 500000000;
   timerfd_settime(hardwarer->timerfd, 0, &spec, NULL);
+  LOG_DEBUG("Scheduled timer for device initialization\n");
 }
 
 Hardwarer initHardwarer(char *dir, int timerfd, int layoutCount,
@@ -153,6 +158,7 @@ Hardwarer initHardwarer(char *dir, int timerfd, int layoutCount,
   while ((en = readdir(root)) != NULL) {
     addDevice(&res, en->d_name);
   }
+  closedir(root);
   return res;
 }
 
@@ -226,7 +232,6 @@ void sendMsg(Hardwarer *hardwarer, int deviceIdx, char *msgs[], int nmsgs) {
       ssize_t written = write(fd, command, 33);
       LOG_DEBUG("Successfully wrote %zd bytes\n", written);
     }
-    usleep(50000);
   }
 
   if (fd >= 0) {

@@ -18,35 +18,16 @@
 #include "../linux_common/log.h"
 #include <linux/limits.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/inotify.h>
+#include <sys/prctl.h>
 #include <sys/timerfd.h>
 #include <unistd.h>
 
 #define DEVICES_DIR "/dev/"
 #define BUFSIZE 4096
-
-void parseLayoutEvents(char *buf, int *buf_len, Hardwarer *hardwarer,
-                       const char *target) {
-  char *start;
-  while ((start = strstr(buf, target))) {
-    start += strlen(target);
-    char *end = strchr(start, '"');
-    if (end) {
-      *end = '\0';
-      LOG_INFO("Parsed layout string: %s\n", start);
-      sendActions(hardwarer, start);
-
-      int remaining = *buf_len - ((end + 1) - buf);
-      memmove(buf, end + 1, remaining);
-      *buf_len = remaining;
-      buf[*buf_len] = '\0';
-    } else {
-      break;
-    }
-  }
-}
 
 int main(int argc, char *argv[]) {
   char *runtimeDir = getenv("XDG_RUNTIME_DIR");
@@ -102,6 +83,8 @@ int main(int argc, char *argv[]) {
   } else if (pid == 0) {
     close(pipefd[0]);
     dup2(pipefd[1], STDOUT_FILENO);
+    prctl(PR_SET_PDEATHSIG, SIGKILL);
+
     execlp("swaymsg", "swaymsg", "-m", "-t", "subscribe", "[\"input\"]", NULL);
     exit(1);
   }
@@ -146,7 +129,6 @@ int main(int argc, char *argv[]) {
         buf_len += n;
         buf[buf_len] = '\0';
 
-        // Very basic substring search for layout name in sway JSON
         char *target = "\"xkb_active_layout_name\": \"";
         char *start = strstr(buf, target);
         if (start) {
@@ -157,7 +139,6 @@ int main(int argc, char *argv[]) {
             LOG_INFO("Sway layout changed to: %s\n", start);
             sendActions(&hardwarer, start);
 
-            // compact buffer
             int remaining = buf_len - ((end + 1) - buf);
             memmove(buf, end + 1, remaining);
             buf_len = remaining;
@@ -165,7 +146,6 @@ int main(int argc, char *argv[]) {
           }
         }
 
-        // Prevent overflow if target never found
         if (buf_len >= BUFSIZE - 1) {
           buf_len = 0;
         }
