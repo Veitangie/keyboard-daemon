@@ -6,6 +6,8 @@ The mapping can be passed as arguments when launching the program - they will be
 - `en` = layer 0  
 - `ru` = layer 1  
 
+> **GNOME Note:** GNOME Wayland uses strict XKB layout shortcodes (e.g., `us`, `ru`, `fr`) instead of full display names. If you use GNOME, pass `'us ru'` instead of `'en ru'` to correctly map your layouts!
+
 If you need to skip a layer (e.g. make a mapping Norwegian - layer 0, English - layer 2) then just use any character sequence that isn't part of any of your locales (`no - en` works, and `no oeinnhvtsatsafatrstarsta en` does too). The matching is done as case-insensitive prefix matching, so for most double-locale setups you can use a single letter (`f e` for French and English, for example).
 
 > **NOTE:** MacOS is unique in the way they treat locales, so you should use the shortest unique **substring** for it instead of shortest unique prefix.
@@ -38,11 +40,11 @@ If you are adapting the daemon for your own needs, you can easily compile and in
 > sudo pacman -U kbd-daemon-<platform>-git-*.pkg.tar.zst
 > ```
 >
-> Replace `<platform>` with one of: `hyprland`, `gnome`, `kde`, `sway`, `x11`. Don't forget to enable the service with `systemctl --user enable --now kbd-daemon-<platform>`
+> Replace `<platform>` with one of: `hyprland`, `gnome`, `plasma`, `sway`, `x11`. Don't forget to enable the service with `systemctl --user enable --now kbd-daemon-<platform>`
 
 1. Clone the repository.
 2. Run the make target for your specific display server or OS:
-   - Linux: `make hyprland`, `make gnome`, `make kde`, `make sway`, `make x11`
+   - Linux: `make hyprland`, `make gnome`, `make plasma`, `make sway`, `make x11`
    - macOS: `make macos`
    - Windows: `make win`
 3. The interactive installer will launch automatically.
@@ -57,7 +59,6 @@ This codebase was written in about 24 hours from start to finish by a person who
 2. Start using fixed-length buffers (bounded by `PATH_MAX`) or heap allocations for file paths instead of variable length arrays to prevent potential stack smashing;
 3. Add bounds checking to the Unix domain socket path in `main.c`. `strcpy` into `sockaddr_un.sun_path` risks a buffer overflow if the user's `XDG_RUNTIME_DIR` exceeds 108 bytes;
 4. Extract magic numbers (like the 33-byte HID write chunks or the `0x06 0x60 0xFF` device signatures) into readable `#define` macros;
-5. Fix the parsing logic in the sway, kde and gnome implementations. I was getting lazy by that point, so there's no handling of message split across buffer boundary. The buffer is big enough for that to be a highly unlikely problem, but there's still a possibility, and it's a dirty solution.
 
 ## Support & Contributing
 

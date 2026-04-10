@@ -41,7 +41,7 @@ jobs:
         run: |
           make build-hyprland CFLAGS="-O3" && mv kbd kbd_hyprland
           make build-gnome CFLAGS="-O3" && mv kbd kbd_gnome
-          make build-kde CFLAGS="-O3" && mv kbd kbd_kde
+          make build-plasma CFLAGS="-O3" && mv kbd kbd_plasma
           make build-sway CFLAGS="-O3" && mv kbd kbd_sway
           make build-x11 CFLAGS="-O3" && mv kbd kbd_x11
 

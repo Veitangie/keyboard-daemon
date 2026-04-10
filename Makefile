@@ -16,7 +16,7 @@
 
 TARGET := $(firstword $(MAKECMDGOALS))
 
-SUPPORTED_TARGETS := hyprland gnome kde sway x11 macos win
+SUPPORTED_TARGETS := hyprland gnome plasma sway x11 macos win
 BUILD_TARGETS := $(addprefix build-,$(SUPPORTED_TARGETS))
 
 ifneq ($(filter $(TARGET),$(SUPPORTED_TARGETS) $(BUILD_TARGETS)),)
@@ -37,8 +37,8 @@ hyprland: build-hyprland
 gnome: build-gnome
 	./install_linux.sh gnome "$(DAEMON_ARGS)"
 
-kde: build-kde
-	./install_linux.sh kde "$(DAEMON_ARGS)"
+plasma: build-plasma
+	./install_linux.sh plasma "$(DAEMON_ARGS)"
 
 sway: build-sway
 	./install_linux.sh sway "$(DAEMON_ARGS)"
@@ -58,10 +58,10 @@ build-hyprland:
 	$(CC) $(CFLAGS) linux_common/hardwarer.c linux_hypr/main.c linux_hypr/parser.c -o kbd
 
 build-gnome:
-	$(CC) $(CFLAGS) linux_common/hardwarer.c linux_wayland_gnome/main.c -o kbd
+	$(CC) $(CFLAGS) linux_common/hardwarer.c linux_wayland_gnome/main.c -lsystemd -o kbd
 
-build-kde:
-	$(CC) $(CFLAGS) linux_common/hardwarer.c linux_wayland_kde/main.c -o kbd
+build-plasma:
+	$(CC) $(CFLAGS) linux_common/hardwarer.c linux_wayland_plasma/main.c -lsystemd -o kbd
 
 build-sway:
 	$(CC) $(CFLAGS) linux_common/hardwarer.c linux_wayland_sway/main.c -o kbd

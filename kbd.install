@@ -3,7 +3,7 @@ post_install() {
   echo "    systemctl --user enable --now kbd-daemon-<platform>"
   echo ""
   echo "Available platforms:"
-  echo "  hyprland, gnome, kde, sway, x11"
+  echo "  hyprland, gnome, plasma, sway, x11"
 }
 
 post_upgrade() {

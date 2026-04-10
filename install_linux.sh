@@ -25,7 +25,7 @@ if [ -z "$PLATFORM" ] || [ -z "$ARGS" ]; then
 fi
 
 if [ -z "$PLATFORM" ]; then
-    read -p "Which platform are you using? (hyprland/gnome/kde/sway/x11): " PLATFORM
+    read -p "Which platform are you using? (hyprland/gnome/plasma/sway/x11): " PLATFORM
 fi
 
 if [ -z "$ARGS" ]; then
@@ -42,6 +42,18 @@ else
     echo "Error: Binary not found. Please compile it first or download the zip."
     exit 1
 fi
+
+echo ""
+echo "Setting up device permissions for ZSA keyboards..."
+echo "Sudo is required to write to /etc/udev/rules.d/ and reload udev rules."
+sudo bash -c 'cat <<EOF > /etc/udev/rules.d/50-kbd-zsa-access.rules
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3297", TAG+="uaccess"
+EOF'
+
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+echo "Udev rules applied."
+echo ""
 
 mkdir -p ~/.config/systemd/user
 mkdir -p ~/.local/bin

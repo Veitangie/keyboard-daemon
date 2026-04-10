@@ -129,25 +129,41 @@ int main(int argc, char *argv[]) {
         buf_len += n;
         buf[buf_len] = '\0';
 
-        char *target = "\"xkb_active_layout_name\": \"";
-        char *start = strstr(buf, target);
-        if (start) {
-          start += strlen(target);
-          char *end = strchr(start, '"');
-          if (end) {
-            *end = '\0';
-            LOG_INFO("Sway layout changed to: %s\n", start);
-            sendActions(&hardwarer, start);
-
-            int remaining = buf_len - ((end + 1) - buf);
-            memmove(buf, end + 1, remaining);
-            buf_len = remaining;
-            buf[buf_len] = '\0';
-          }
+        char *line_start = buf;
+        char *line_end;
+        while ((line_end = strchr(line_start, '\n')) != NULL) {
+            *line_end = '\0';
+            
+            char *target = "\"xkb_active_layout_name\": \"";
+            char *start = strstr(line_start, target);
+            if (start) {
+                start += strlen(target);
+                char *end = strchr(start, '"');
+                if (end) {
+                    *end = '\0';
+                    static char last_layout[64] = {0};
+                    if (strcmp(start, last_layout) != 0) {
+                        strncpy(last_layout, start, sizeof(last_layout) - 1);
+                        LOG_INFO("Sway layout changed to: %s\n", start);
+                        sendActions(&hardwarer, start);
+                    } else {
+                        LOG_INFO("Ignoring duplicate Sway active layout %s event\n", start);
+                    }
+                }
+            }
+            line_start = line_end + 1;
         }
 
+        int remaining = buf_len - (line_start - buf);
+        if (remaining > 0 && remaining != buf_len) {
+            memmove(buf, line_start, remaining);
+        }
+        buf_len = remaining;
+        buf[buf_len] = '\0';
+
         if (buf_len >= BUFSIZE - 1) {
-          buf_len = 0;
+            LOG_WARN("Sway IPC string buffer overflowed! Discarding stream payload bounds...\n");
+            buf_len = 0;
         }
       }
     }
