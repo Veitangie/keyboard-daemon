@@ -33,7 +33,7 @@ build() {
 
   make build-hyprland && mv kbd kbd_hyprland
   make build-gnome    && mv kbd kbd_gnome
-  make build-plasma      && mv kbd kbd_plasma
+  make build-plasma   && mv kbd kbd_plasma
   make build-sway     && mv kbd kbd_sway
   make build-x11      && mv kbd kbd_x11
 }
@@ -126,13 +126,13 @@ package_kbd-daemon-all-git() {
 
   install -Dm755 kbd_hyprland "$pkgdir/usr/bin/kbd-daemon-hyprland"
   install -Dm755 kbd_gnome    "$pkgdir/usr/bin/kbd-daemon-gnome"
-  install -Dm755 kbd_plasma      "$pkgdir/usr/bin/kbd-daemon-plasma"
+  install -Dm755 kbd_plasma   "$pkgdir/usr/bin/kbd-daemon-plasma"
   install -Dm755 kbd_sway     "$pkgdir/usr/bin/kbd-daemon-sway"
   install -Dm755 kbd_x11      "$pkgdir/usr/bin/kbd-daemon-x11"
 
   _install_service "hyprland" "kbd-daemon-hyprland"
   _install_service "gnome"    "kbd-daemon-gnome"
-  _install_service "plasma"      "kbd-daemon-plasma"
+  _install_service "plasma"   "kbd-daemon-plasma"
   _install_service "sway"     "kbd-daemon-sway"
   _install_service "x11"      "kbd-daemon-x11"
 
